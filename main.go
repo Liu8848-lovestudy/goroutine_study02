@@ -3,22 +3,30 @@ package main
 import (
 	"fmt"
 	"goroutine_study02/restuarant"
-	"sync"
 )
 
 func main() {
-	m, n, c := 100, 5, 10
+	m, n, c := 50, 10, 3 //材料，顾客，厨师数量
 	rf := restuarant.ReFactory{}
-	restuarant.Set(m, n)
-	wg := sync.WaitGroup{}
+	restuarant.Set(m, n, c)
+	ch := make(chan struct{}, 1)
 	for i := 1; i < c+1; i++ {
-		wg.Add(1)
-		go rf.Create("cooker", i, &wg).Action()
+
+		go rf.Create("cooker", i).Action(ch)
 	}
 	for j := 1; j < n+1; j++ {
-		wg.Add(1)
-		go rf.Create("customer", j, &wg).Action()
+		go rf.Create("customer", j).Action(ch)
 	}
-	wg.Wait()
-	fmt.Println("饭店打样！")
+	for {
+		restuarant.Judge(n, c, ch)
+		select {
+		case <-ch:
+			fmt.Println("饭店打样！")
+			restuarant.Close_All()
+			return
+		default:
+			break
+		}
+
+	}
 }
